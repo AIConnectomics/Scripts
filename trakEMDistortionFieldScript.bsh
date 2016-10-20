@@ -1,0 +1,82 @@
+import ini.trakem2.ControlWindow;
+import ini.trakem2.Project;
+import ini.trakem2.display.Layer;
+import ini.trakem2.display.Patch;
+import java.lang.Runtime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import lenscorrection.*;
+import mpicbg.trakem2.transform.*;
+import ini.trakem2.display.*;
+import lenscorrection.*;
+import java.io.*;
+
+
+NonLinearTransform getLensCorrectionModel(refp) {
+
+/* if no reference patch, get out of here */
+if ( refp == null ) return null;
+
+/* get the reference patch CT */
+ct = refp.getCoordinateTransform();
+/* if no CT there, get out of here */
+if ( ct == null ) return null;
+
+/* unwind CT lists to get the very first actual CT */
+while ( CoordinateTransformList.class.isInstance( ct ) ) {
+ct = ct.get( 0 );
+}
+/* is it a NonLinearTransform? */
+/*
+* TODO: This is not really required, the desired operation is to take the
+* first CT of a reference patch and make it the first CT of some other
+* patches.  This does not require the CT to be anything particular.
+*/
+if ( NonLinearTransform.class.isInstance( ct ) )
+return ct;
+
+return null;
+}
+
+//p = Display.getFront().getLayerSet().getDisplayables(Patch.class).get(0);
+//pcts = getLensCorrectionModel(p).toDataString();
+// pull from tring
+pcts = "5 21 960.3687139296818 -5.303842758578794 3.6513848682053887 1044.2140468281239 -10.44660563591836 6.663284752131261 -12.38037525595827 9.207782521697997 -17.93961701650086 3.2675851754146166 -0.8800060868848192 -23.243356865017688 -18.96580139073731 -0.47813752725444303 0.7030253446325574 22.28944650118261 36.59299466950755 39.77367787879027 -5.2505372294937445 2.8490303393071486 1.8105646639006352 25.531923067882058 30.86313626139794 -7.993893092318476 -4.453602838134486 -22.277468123571055 -25.593322659123714 -44.047377341646865 -0.3401883936481198 0.5740118159614838 4.752079973619024 -2.3002917642293603 -3.6617559552396823 -11.121950636913951 -8.682121708889573 8.1852180747772 4.0889360917622355 3.5925069249817483 8.520322704920737 16.692196337045615 24.830944353943234 20.622925918906414 2483.192078944667 2062.289778890893 7052747.884217427 5040337.0927780755 5399717.716379541 2.1415480231440994E10 1.422360301127535E10 1.307070795260844E10 1.5622992626115969E10 6.791296171837691E13 4.304079644070244E13 3.6708744257865195E13 3.759650660529673E13 4.782191831716959E13 2.2208693985453984E17 1.36184030429711568E17 1.10731459382112112E17 1.05247577842556464E17 1.1461278471058216E17 1.51909286558671552E17 100.0 941.5597568727121 1070.8487849868013 4262900.384788074 3362160.931643948 4320369.679544112 1.6859792653329605E10 1.2132520010058933E10 1.2215618543885006E10 1.5856941460442877E10 6.405344372464169E13 4.409725698074053E13 4.093477203868546E13 4.325074502062138E13 5.732355743941107E13 2.39513720980587168E17 1.60559751319574176E17 1.42729172240708768E17 1.40564110667451024E17 1.53336748141916928E17 2.06999718861818464E17 0.0 3840 3840 ";
+npct = new NonLinearTransform();
+npct.init(pcts);
+String fileName = "foo.txt";
+FileWriter fileWriter = new FileWriter(fileName);
+BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+int xSpacing = 3840 /16;
+int ySpacing = 3840 /16;
+double xPosition = 0.0;
+double yPosition = 0.0;
+double[] x2y2 = new double [] {0, 0};
+double[] location = new double [] {0, 0};
+
+for (int i=0; i<16; i++) // i will be the y value iterated over
+	{
+		location[1] = (double) (ySpacing * i + ySpacing/2);
+		for (int j=0; j<16; j++) // j will be the x value iterated over
+		{
+			location[0] = (double) (xSpacing * j + xSpacing/2);
+			System.out.print(" x1 ");
+			System.out.print(location[0]);
+			System.out.print(" y1 ");
+			System.out.print(location[1]);
+			x2y2 = npct.apply(location);
+			System.out.print(" x2 ");
+			System.out.print(x2y2[0]);
+			System.out.print(" y2 ");
+			System.out.print(x2y2[1]);
+			System.out.print("\n");
+			bufferedWriter.write(" x1 " + location[0] + " y1 " + location[1] + " x2 " + x2y2[0] + " y2 " + x2y2[1] );
+			bufferedWriter.newLine();
+		}
+	}
+
+bufferedWriter.write(npct.toDataString());
+bufferedWriter.close();
+
+System.out.println(npct.toDataString());
+npct.visualize();  //does the quiver field, distortion field and displacement grid
